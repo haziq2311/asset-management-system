@@ -1,9 +1,31 @@
+-- phpMyAdmin SQL Dump
+-- version 5.2.1
+-- https://www.phpmyadmin.net/
+--
+-- Host: 127.0.0.1
+-- Generation Time: Feb 13, 2026 at 01:54 AM
+-- Server version: 10.4.32-MariaDB
+-- PHP Version: 8.2.12
+
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
 SET time_zone = "+00:00";
 
 
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
 
+--
+-- Database: `asset_management`
+--
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `activity_logs`
+--
 
 CREATE TABLE `activity_logs` (
   `log_id` int(11) NOT NULL,
@@ -14,7 +36,11 @@ CREATE TABLE `activity_logs` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- --------------------------------------------------------
 
+--
+-- Table structure for table `assets`
+--
 
 CREATE TABLE `assets` (
   `asset_id` varchar(30) NOT NULL,
@@ -44,10 +70,13 @@ CREATE TABLE `assets` (
   `updated_by` varchar(50) DEFAULT NULL,
   `image_path` varchar(500) DEFAULT NULL,
   `created_by` varchar(50) DEFAULT NULL
-) ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- --------------------------------------------------------
 
-
+--
+-- Table structure for table `asset_classes`
+--
 
 CREATE TABLE `asset_classes` (
   `class_id` varchar(50) NOT NULL,
@@ -55,7 +84,9 @@ CREATE TABLE `asset_classes` (
   `description` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-
+--
+-- Dumping data for table `asset_classes`
+--
 
 INSERT INTO `asset_classes` (`class_id`, `class_name`, `description`) VALUES
 ('CLASS001', 'Computers', NULL),
@@ -65,7 +96,11 @@ INSERT INTO `asset_classes` (`class_id`, `class_name`, `description`) VALUES
 ('CLASS005', 'Office Equipment', NULL),
 ('CLASS006', 'Motor Vehicles', NULL);
 
+-- --------------------------------------------------------
 
+--
+-- Table structure for table `asset_history`
+--
 
 CREATE TABLE `asset_history` (
   `asset_history_id` varchar(50) NOT NULL,
@@ -78,7 +113,11 @@ CREATE TABLE `asset_history` (
   `new_values` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`new_values`))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- --------------------------------------------------------
 
+--
+-- Table structure for table `asset_movements`
+--
 
 CREATE TABLE `asset_movements` (
   `movement_id` varchar(50) NOT NULL,
@@ -92,7 +131,11 @@ CREATE TABLE `asset_movements` (
   `status` varchar(50) NOT NULL DEFAULT 'Pending'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- --------------------------------------------------------
 
+--
+-- Table structure for table `departments`
+--
 
 CREATE TABLE `departments` (
   `department_id` varchar(50) NOT NULL,
@@ -101,7 +144,9 @@ CREATE TABLE `departments` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-
+--
+-- Dumping data for table `departments`
+--
 
 INSERT INTO `departments` (`department_id`, `name`, `department_head_id`, `created_at`) VALUES
 ('DEPT001', 'Admin', NULL, '2026-01-22 03:20:39'),
@@ -110,7 +155,11 @@ INSERT INTO `departments` (`department_id`, `name`, `department_head_id`, `creat
 ('DEPT004', 'Warehouse', NULL, '2026-01-22 03:20:39'),
 ('DEPT005', 'IT', NULL, '2026-01-22 03:20:39');
 
+-- --------------------------------------------------------
 
+--
+-- Table structure for table `disposals`
+--
 
 CREATE TABLE `disposals` (
   `write_off_id` varchar(50) NOT NULL,
@@ -123,7 +172,11 @@ CREATE TABLE `disposals` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- --------------------------------------------------------
 
+--
+-- Table structure for table `locations`
+--
 
 CREATE TABLE `locations` (
   `location_id` varchar(50) NOT NULL,
@@ -133,7 +186,9 @@ CREATE TABLE `locations` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-
+--
+-- Dumping data for table `locations`
+--
 
 INSERT INTO `locations` (`location_id`, `name`, `barcode_qr`, `notes`, `created_at`) VALUES
 ('LOC001', 'Duta Jasa Warehouse', NULL, NULL, '2026-01-22 03:20:39'),
@@ -141,7 +196,11 @@ INSERT INTO `locations` (`location_id`, `name`, `barcode_qr`, `notes`, `created_
 ('LOC003', 'AT309', NULL, NULL, '2026-01-22 03:20:39'),
 ('LOC004', 'Nugen Office', NULL, NULL, '2026-01-22 03:20:39');
 
+-- --------------------------------------------------------
 
+--
+-- Table structure for table `maintenance`
+--
 
 CREATE TABLE `maintenance` (
   `maintenance_id` varchar(50) NOT NULL,
@@ -156,7 +215,11 @@ CREATE TABLE `maintenance` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- --------------------------------------------------------
 
+--
+-- Table structure for table `notifications`
+--
 
 CREATE TABLE `notifications` (
   `notification_id` int(11) NOT NULL,
@@ -168,7 +231,11 @@ CREATE TABLE `notifications` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- --------------------------------------------------------
 
+--
+-- Table structure for table `procurement`
+--
 
 CREATE TABLE `procurement` (
   `procurement_id` varchar(50) NOT NULL,
@@ -180,14 +247,22 @@ CREATE TABLE `procurement` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- --------------------------------------------------------
 
+--
+-- Table structure for table `procurement_assets`
+--
 
 CREATE TABLE `procurement_assets` (
   `procurement_id` varchar(50) NOT NULL,
   `asset_id` varchar(30) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- --------------------------------------------------------
 
+--
+-- Table structure for table `users`
+--
 
 CREATE TABLE `users` (
   `user_id` varchar(50) NOT NULL,
@@ -204,7 +279,23 @@ CREATE TABLE `users` (
   `last_login` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `users`
+--
 
+INSERT INTO `users` (`user_id`, `username`, `password_hash`, `reset_token_hash`, `reset_token_expires_at`, `full_name`, `email`, `role`, `department_id`, `is_active`, `created_at`, `last_login`) VALUES
+('USR202602130988', 'NC045', '$2y$10$ffHTsxurKIRuk3M1xIjnfuGu9eHoCISExyKzxqEjBSug8NgmjyJSi', NULL, NULL, 'MARQUIZIELA BINTI WAHED', 'marq@gmail.com', 'operation_manager', '', 1, '2026-02-13 00:52:56', NULL),
+('USR202602132769', 'DP019', '$2y$10$omdQ7LC2qbOWZ.6doz1a3.iMo9N3WUje6eBgpHIfg0Q0HeUDcSUFC', NULL, NULL, 'FHEIMEILZA BINTI RAMZEI', 'fheim@gmail.com', 'operation_team', '', 1, '2026-02-13 00:53:47', NULL),
+('USR202602133443', 'DJ020', '$2y$10$yTbcjCn5YzI9qAyboirUh.PNCDS73nWNCkziUbJfpc/tOag43Lw6O', NULL, NULL, 'CHAI HUI LING', 'Chai@gmail.com', 'accountant', '', 1, '2026-02-13 00:51:08', NULL),
+('USR202602134239', 'DP037', '$2y$10$4HvbQ9.nJqRFjmxN1UdObumkOkBFT3LthNc3kbJTNpPv.CKtv/7we', NULL, NULL, 'HARI ANAK SABANG', 'hari@gmail.com', 'logistic_coordinator', '', 1, '2026-02-13 00:51:57', NULL),
+('USR202602135531', 'DP089', '$2y$10$YIOnjjIt62bE5HphvgRKVetGlyMlEFXrPD0Y4rLHieoOFAxNE9f9O', NULL, NULL, 'SITI ZAFINA BINTI MOHAMED OMAR', 'zafina@gmail.com', 'admin', '', 1, '2026-02-13 00:49:26', NULL),
+('USR202602136180', 'NC104', '$2y$10$s6s9s3GHDCkGTu1YWzOmi.qzbxDWI1n.mGVKuoi0EH2FP/RtokEoS', NULL, NULL, 'MUHAMMAD HANIFF FADHIL BIN ZAKARIA', 'hanif@gmail.com', 'it_operation', '', 1, '2026-02-13 00:54:19', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `user_sessions`
+--
 
 CREATE TABLE `user_sessions` (
   `session_id` varchar(128) NOT NULL,
@@ -216,12 +307,42 @@ CREATE TABLE `user_sessions` (
   `is_valid` tinyint(1) DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- --------------------------------------------------------
 
+--
+-- Table structure for table `vehicle_details`
+--
+
+CREATE TABLE `vehicle_details` (
+  `vehicle_detail_id` int(11) NOT NULL,
+  `asset_id` varchar(30) NOT NULL,
+  `license_plate` varchar(20) NOT NULL,
+  `vehicle_type` varchar(50) DEFAULT NULL,
+  `fuel_type` varchar(30) DEFAULT NULL,
+  `engine_capacity` varchar(20) DEFAULT NULL,
+  `chassis_number` varchar(50) DEFAULT NULL,
+  `color` varchar(30) DEFAULT NULL,
+  `last_service_date` date DEFAULT NULL,
+  `next_service_date` date DEFAULT NULL,
+  `current_mileage` int(11) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Indexes for dumped tables
+--
+
+--
+-- Indexes for table `activity_logs`
+--
 ALTER TABLE `activity_logs`
   ADD PRIMARY KEY (`log_id`),
   ADD KEY `fk_activity_user` (`user_id`);
 
-
+--
+-- Indexes for table `assets`
+--
 ALTER TABLE `assets`
   ADD PRIMARY KEY (`asset_id`),
   ADD UNIQUE KEY `asset_tag` (`asset_tag`),
@@ -233,18 +354,24 @@ ALTER TABLE `assets`
   ADD KEY `idx_assets_user` (`assigned_to_user_id`),
   ADD KEY `idx_assets_warranty` (`warranty_expiry`);
 
-
+--
+-- Indexes for table `asset_classes`
+--
 ALTER TABLE `asset_classes`
   ADD PRIMARY KEY (`class_id`);
 
-
+--
+-- Indexes for table `asset_history`
+--
 ALTER TABLE `asset_history`
   ADD PRIMARY KEY (`asset_history_id`),
   ADD KEY `fk_history_user` (`changed_by_user_id`),
   ADD KEY `idx_history_asset` (`asset_id`),
   ADD KEY `idx_history_date` (`changed_at`);
 
-
+--
+-- Indexes for table `asset_movements`
+--
 ALTER TABLE `asset_movements`
   ADD PRIMARY KEY (`movement_id`),
   ADD KEY `fk_movement_user` (`performed_by_user_id`),
@@ -253,43 +380,59 @@ ALTER TABLE `asset_movements`
   ADD KEY `idx_movements_asset` (`asset_id`),
   ADD KEY `idx_movements_date` (`movement_date`);
 
-
+--
+-- Indexes for table `departments`
+--
 ALTER TABLE `departments`
   ADD PRIMARY KEY (`department_id`),
   ADD KEY `fk_department_head` (`department_head_id`);
 
-
+--
+-- Indexes for table `disposals`
+--
 ALTER TABLE `disposals`
   ADD PRIMARY KEY (`write_off_id`),
   ADD KEY `fk_disposal_asset` (`asset_id`),
   ADD KEY `fk_disposal_user` (`written_off_by_user_id`);
 
-
+--
+-- Indexes for table `locations`
+--
 ALTER TABLE `locations`
   ADD PRIMARY KEY (`location_id`);
 
-
+--
+-- Indexes for table `maintenance`
+--
 ALTER TABLE `maintenance`
   ADD PRIMARY KEY (`maintenance_id`),
   ADD KEY `idx_maintenance_asset` (`asset_id`),
   ADD KEY `idx_maintenance_status` (`status`);
 
-
+--
+-- Indexes for table `notifications`
+--
 ALTER TABLE `notifications`
   ADD PRIMARY KEY (`notification_id`),
   ADD KEY `idx_notifications_user` (`user_id`),
   ADD KEY `idx_notifications_read` (`is_read`);
 
-
+--
+-- Indexes for table `procurement`
+--
 ALTER TABLE `procurement`
   ADD PRIMARY KEY (`procurement_id`);
 
-
+--
+-- Indexes for table `procurement_assets`
+--
 ALTER TABLE `procurement_assets`
   ADD PRIMARY KEY (`procurement_id`,`asset_id`),
   ADD KEY `fk_procurement_assets_asset` (`asset_id`);
 
-
+--
+-- Indexes for table `users`
+--
 ALTER TABLE `users`
   ADD PRIMARY KEY (`user_id`),
   ADD UNIQUE KEY `username` (`username`),
@@ -298,63 +441,119 @@ ALTER TABLE `users`
   ADD KEY `idx_users_department` (`department_id`),
   ADD KEY `idx_users_role` (`role`);
 
-
+--
+-- Indexes for table `user_sessions`
+--
 ALTER TABLE `user_sessions`
   ADD PRIMARY KEY (`session_id`),
   ADD KEY `idx_sessions_user` (`user_id`),
   ADD KEY `idx_sessions_valid` (`is_valid`);
 
+--
+-- Indexes for table `vehicle_details`
+--
+ALTER TABLE `vehicle_details`
+  ADD PRIMARY KEY (`vehicle_detail_id`),
+  ADD UNIQUE KEY `license_plate` (`license_plate`),
+  ADD UNIQUE KEY `chassis_number` (`chassis_number`),
+  ADD KEY `fk_vehicle_asset` (`asset_id`);
 
+--
+-- AUTO_INCREMENT for dumped tables
+--
+
+--
+-- AUTO_INCREMENT for table `activity_logs`
+--
 ALTER TABLE `activity_logs`
   MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
-
+--
+-- AUTO_INCREMENT for table `notifications`
+--
 ALTER TABLE `notifications`
   MODIFY `notification_id` int(11) NOT NULL AUTO_INCREMENT;
 
+--
+-- AUTO_INCREMENT for table `vehicle_details`
+--
+ALTER TABLE `vehicle_details`
+  MODIFY `vehicle_detail_id` int(11) NOT NULL AUTO_INCREMENT;
 
+--
+-- Constraints for dumped tables
+--
+
+--
+-- Constraints for table `activity_logs`
+--
 ALTER TABLE `activity_logs`
   ADD CONSTRAINT `fk_activity_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE SET NULL;
 
-
+--
+-- Constraints for table `assets`
+--
 ALTER TABLE `assets`
   ADD CONSTRAINT `fk_asset_department` FOREIGN KEY (`owner_department_id`) REFERENCES `departments` (`department_id`) ON DELETE SET NULL,
   ADD CONSTRAINT `fk_asset_location` FOREIGN KEY (`location_id`) REFERENCES `locations` (`location_id`) ON DELETE SET NULL,
   ADD CONSTRAINT `fk_asset_updated_by` FOREIGN KEY (`updated_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL,
   ADD CONSTRAINT `fk_asset_user` FOREIGN KEY (`assigned_to_user_id`) REFERENCES `users` (`user_id`) ON DELETE SET NULL;
 
-
+--
+-- Constraints for table `asset_history`
+--
 ALTER TABLE `asset_history`
   ADD CONSTRAINT `fk_history_asset` FOREIGN KEY (`asset_id`) REFERENCES `assets` (`asset_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `fk_history_user` FOREIGN KEY (`changed_by_user_id`) REFERENCES `users` (`user_id`) ON DELETE SET NULL;
 
-
+--
+-- Constraints for table `asset_movements`
+--
 ALTER TABLE `asset_movements`
   ADD CONSTRAINT `fk_movement_asset` FOREIGN KEY (`asset_id`) REFERENCES `assets` (`asset_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `fk_movement_from_location` FOREIGN KEY (`from_location_id`) REFERENCES `locations` (`location_id`) ON DELETE SET NULL,
   ADD CONSTRAINT `fk_movement_to_location` FOREIGN KEY (`to_location_id`) REFERENCES `locations` (`location_id`) ON DELETE SET NULL,
   ADD CONSTRAINT `fk_movement_user` FOREIGN KEY (`performed_by_user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
 
-
+--
+-- Constraints for table `disposals`
+--
 ALTER TABLE `disposals`
   ADD CONSTRAINT `fk_disposal_asset` FOREIGN KEY (`asset_id`) REFERENCES `assets` (`asset_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `fk_disposal_user` FOREIGN KEY (`written_off_by_user_id`) REFERENCES `users` (`user_id`) ON DELETE SET NULL;
 
-
+--
+-- Constraints for table `maintenance`
+--
 ALTER TABLE `maintenance`
   ADD CONSTRAINT `fk_maintenance_asset` FOREIGN KEY (`asset_id`) REFERENCES `assets` (`asset_id`) ON DELETE CASCADE;
 
-
+--
+-- Constraints for table `notifications`
+--
 ALTER TABLE `notifications`
   ADD CONSTRAINT `fk_notification_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
 
-
+--
+-- Constraints for table `procurement_assets`
+--
 ALTER TABLE `procurement_assets`
   ADD CONSTRAINT `fk_procurement_assets_asset` FOREIGN KEY (`asset_id`) REFERENCES `assets` (`asset_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `fk_procurement_assets_procurement` FOREIGN KEY (`procurement_id`) REFERENCES `procurement` (`procurement_id`) ON DELETE CASCADE;
 
-
+--
+-- Constraints for table `user_sessions`
+--
 ALTER TABLE `user_sessions`
   ADD CONSTRAINT `fk_session_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `vehicle_details`
+--
+ALTER TABLE `vehicle_details`
+  ADD CONSTRAINT `fk_vehicle_asset` FOREIGN KEY (`asset_id`) REFERENCES `assets` (`asset_id`) ON DELETE CASCADE;
 COMMIT;
 
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
