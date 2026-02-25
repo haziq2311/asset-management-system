@@ -13,28 +13,52 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
         $asset_id = 'VEH' . date('Ymd') . rand(100, 999);
         $asset_tag = 'VH-' . date('Y') . '-' . rand(1000, 9999);
         
-        // Insert into assets table
+        // Insert into assets table - using correct column names from your schema
         $sql_asset = "INSERT INTO assets (asset_id, asset_tag, asset_name, asset_class, model, manufacturer, 
                      serial_number, acquisition_date, cost, asset_status, location_id, created_by) 
-                     VALUES (?, ?, ?, 'CLASS006', ?, ?, ?, ?, ?, ?, 'LOC001', ?)";
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         $stmt = $conn->prepare($sql_asset);
         $vehicle_name = $_POST['model'] . ' - ' . $_POST['registration'];
-        $stmt->bind_param("sssssssdss", $asset_id, $asset_tag, $vehicle_name, $_POST['model'], 
-                         $_POST['manufacturer'], $_POST['serial_number'], $_POST['acquisition_date'], 
-                         $_POST['cost'], $_POST['condition'], $user_id);
+        $status = $_POST['condition']; // Available, Maintenance, or Retired
+        $location_id = 'LOC001'; // Default warehouse location
+        
+        $stmt->bind_param("ssssssssdsss", 
+            $asset_id, 
+            $asset_tag, 
+            $vehicle_name, 
+            'CLASS006', // Motor Vehicles class
+            $_POST['model'], 
+            $_POST['manufacturer'], 
+            $_POST['serial_number'], 
+            $_POST['acquisition_date'], 
+            $_POST['cost'], 
+            $status,
+            $location_id,
+            $user_id
+        );
         
         if ($stmt->execute()) {
-            // Insert into vehicle_details table
+            // Insert into vehicle_details table - using correct column names
             $sql_vehicle = "INSERT INTO vehicle_details (asset_id, license_plate, vehicle_type, fuel_type, 
                           engine_capacity, chassis_number, color, current_mileage, last_service_date, next_service_date) 
                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             
             $stmt2 = $conn->prepare($sql_vehicle);
             $next_service = date('Y-m-d', strtotime($_POST['acquisition_date'] . ' + 6 months'));
-            $stmt2->bind_param("sssssssiss", $asset_id, $_POST['registration'], $_POST['vehicle_type'], 
-                             $_POST['fuel_type'], $_POST['engine_capacity'], $_POST['chassis_number'], 
-                             $_POST['color'], $_POST['current_mileage'], $_POST['acquisition_date'], $next_service);
+            
+            $stmt2->bind_param("sssssssiss", 
+                $asset_id, 
+                $_POST['registration'], 
+                $_POST['vehicle_type'], 
+                $_POST['fuel_type'], 
+                $_POST['engine_capacity'], 
+                $_POST['chassis_number'], 
+                $_POST['color'], 
+                $_POST['current_mileage'], 
+                $_POST['acquisition_date'], 
+                $next_service
+            );
             
             if ($stmt2->execute()) {
                 // Handle image upload
@@ -47,6 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                     $target_file = $target_dir . $image_name;
                     
                     if (move_uploaded_file($_FILES['vehicle_image']['tmp_name'], $target_file)) {
+                        // Update image path in assets table
                         $sql_img = "UPDATE assets SET image_path = ? WHERE asset_id = ?";
                         $stmt3 = $conn->prepare($sql_img);
                         $stmt3->bind_param("ss", $target_file, $asset_id);
@@ -56,10 +81,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                 
                 $_SESSION['success_message'] = "Vehicle added successfully!";
             } else {
-                $_SESSION['error_message'] = "Error adding vehicle details";
+                $_SESSION['error_message'] = "Error adding vehicle details: " . $conn->error;
             }
         } else {
-            $_SESSION['error_message'] = "Error adding vehicle";
+            $_SESSION['error_message'] = "Error adding vehicle: " . $conn->error;
         }
         
         header('Location: vehicle_management.php');
@@ -69,25 +94,42 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
     // Handle Vehicle Movement
     if ($_POST['action'] == 'add_movement') {
         $movement_id = 'MOV' . date('YmdHis') . rand(10, 99);
+        
+        // Insert into asset_movements table - using correct column names
         $sql = "INSERT INTO asset_movements (movement_id, asset_id, movement_type, performed_by_user_id, 
                 from_location_id, to_location_id, remarks, status) 
-                VALUES (?, ?, 'Trip', ?, 'LOC001', 'LOC002', ?, 'Completed')";
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         
         $stmt = $conn->prepare($sql);
+        $movement_type = 'Trip';
+        $from_location = 'LOC001'; // Default from warehouse
+        $to_location = 'LOC002'; // Default to location (you might want to make this dynamic)
+        $status = 'Completed';
         $remarks = "Destination: " . $_POST['destination'] . " | Purpose: " . $_POST['purpose'] . 
                   " | Current Location: " . $_POST['current_location'];
-        $stmt->bind_param("ssss", $movement_id, $_POST['asset_id'], $user_id, $remarks);
+        
+        $stmt->bind_param("ssssssss", 
+            $movement_id, 
+            $_POST['asset_id'], 
+            $movement_type, 
+            $user_id, 
+            $from_location, 
+            $to_location, 
+            $remarks, 
+            $status
+        );
         
         if ($stmt->execute()) {
-            // Update vehicle location and status
-            $sql_update = "UPDATE assets SET location_id = 'LOC002', asset_status = 'In Use' WHERE asset_id = ?";
+            // Update vehicle location and status in assets table
+            $sql_update = "UPDATE assets SET location_id = ?, asset_status = 'In Use' WHERE asset_id = ?";
             $stmt2 = $conn->prepare($sql_update);
-            $stmt2->bind_param("s", $_POST['asset_id']);
+            $new_location = 'LOC002'; // This should be dynamic based on destination
+            $stmt2->bind_param("ss", $new_location, $_POST['asset_id']);
             $stmt2->execute();
             
             $_SESSION['success_message'] = "Vehicle movement recorded successfully!";
         } else {
-            $_SESSION['error_message'] = "Error recording movement";
+            $_SESSION['error_message'] = "Error recording movement: " . $conn->error;
         }
         
         header('Location: vehicle_management.php');
@@ -95,16 +137,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
     }
 }
 
-// Get all vehicles
+// Get all vehicles - CORRECTED QUERY to match your schema
 $vehicles = [];
 $sql = "SELECT a.*, vd.license_plate, vd.vehicle_type, vd.fuel_type, vd.engine_capacity, 
         vd.chassis_number, vd.color, vd.last_service_date, vd.next_service_date, vd.current_mileage,
-        l.name as location_name
+        l.name as location_name,
+        d.name as department_name,
+        u.full_name as assigned_to_name
         FROM assets a 
         LEFT JOIN vehicle_details vd ON a.asset_id = vd.asset_id
         LEFT JOIN locations l ON a.location_id = l.location_id
+        LEFT JOIN departments d ON a.owner_department_id = d.department_id
+        LEFT JOIN users u ON a.assigned_to_user_id = u.user_id
         WHERE a.asset_class = 'CLASS006' 
         ORDER BY a.created_at DESC";
+
 $result = $conn->query($sql);
 if ($result) {
     while ($row = $result->fetch_assoc()) {
@@ -112,20 +159,46 @@ if ($result) {
     }
 }
 
-// Get vehicle movements
+// Get vehicle movements - CORRECTED QUERY
 $movements = [];
-$sql_movements = "SELECT am.*, a.asset_name, a.asset_tag, vd.license_plate, u.full_name as performed_by
+$sql_movements = "SELECT am.*, a.asset_name, a.asset_tag, vd.license_plate, 
+                 u.full_name as performed_by,
+                 fl.name as from_location_name,
+                 tl.name as to_location_name
                  FROM asset_movements am
                  JOIN assets a ON am.asset_id = a.asset_id
                  LEFT JOIN vehicle_details vd ON a.asset_id = vd.asset_id
                  LEFT JOIN users u ON am.performed_by_user_id = u.user_id
+                 LEFT JOIN locations fl ON am.from_location_id = fl.location_id
+                 LEFT JOIN locations tl ON am.to_location_id = tl.location_id
                  WHERE a.asset_class = 'CLASS006'
                  ORDER BY am.movement_date DESC
                  LIMIT 50";
+
 $result_movements = $conn->query($sql_movements);
 if ($result_movements) {
     while ($row = $result_movements->fetch_assoc()) {
         $movements[] = $row;
+    }
+}
+
+// Get locations for dropdowns
+$locations = [];
+$sql_locations = "SELECT location_id, name FROM locations ORDER BY name";
+$result_locations = $conn->query($sql_locations);
+if ($result_locations) {
+    while ($row = $result_locations->fetch_assoc()) {
+        $locations[] = $row;
+    }
+}
+
+// Get departments for dropdowns
+$departments = [];
+$sql_depts = "SELECT department_id, name FROM departments ORDER BY name";
+$result_depts = $conn->query($sql_depts);
+if ($result_depts) {
+    while ($row = $result_depts->fetch_assoc()) {
+        $departments[] = $row;
     }
 }
 
@@ -139,6 +212,11 @@ foreach ($vehicles as $vehicle) {
     if ($vehicle['asset_status'] == 'Available') $available_vehicles++;
     if ($vehicle['asset_status'] == 'In Use') $in_use_vehicles++;
     if ($vehicle['asset_status'] == 'Maintenance') $maintenance_vehicles++;
+}
+
+// Also count 'In Stock' status if it exists
+foreach ($vehicles as $vehicle) {
+    if ($vehicle['asset_status'] == 'In Stock') $available_vehicles++;
 }
 ?>
 
@@ -192,6 +270,11 @@ foreach ($vehicles as $vehicle) {
             padding: 20px;
             border-radius: 10px;
             margin-bottom: 25px;
+        }
+        .vehicle-image {
+            max-height: 100px;
+            object-fit: contain;
+            border-radius: 5px;
         }
     </style>
 </head>
@@ -314,19 +397,20 @@ foreach ($vehicles as $vehicle) {
                             <select name="filter_vehicle" class="form-select">
                                 <option value="">All Vehicles</option>
                                 <?php foreach ($vehicles as $vehicle): ?>
-                                    <option value="<?php echo $vehicle['asset_id']; ?>">
-                                        <?php echo htmlspecialchars($vehicle['license_plate'] . ' - ' . ($vehicle['model'] ?? 'N/A')); ?>
+                                    <option value="<?php echo htmlspecialchars($vehicle['asset_id']); ?>">
+                                        <?php echo htmlspecialchars(($vehicle['license_plate'] ?? 'N/A') . ' - ' . ($vehicle['model'] ?? 'N/A')); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">Condition/Status</label>
+                            <label class="form-label">Status</label>
                             <select name="filter_status" class="form-select">
                                 <option value="">All Status</option>
                                 <option value="Available">Available</option>
                                 <option value="In Use">In Use</option>
                                 <option value="Maintenance">Maintenance</option>
+                                <option value="In Stock">In Stock</option>
                                 <option value="Retired">Retired</option>
                             </select>
                         </div>
@@ -354,14 +438,6 @@ foreach ($vehicles as $vehicle) {
                         <div class="col-md-1 d-flex align-items-end">
                             <button type="submit" class="btn btn-danger w-100">
                                 <i class="bi bi-search"></i>
-                            </button>
-                        </div>
-                        <div class="col-md-12 text-end mt-3">
-                            <button type="button" class="btn btn-success" onclick="window.print()">
-                                <i class="bi bi-file-pdf"></i> Export Report
-                            </button>
-                            <button type="button" class="btn btn-secondary">
-                                <i class="bi bi-file-spreadsheet"></i> Export Excel
                             </button>
                         </div>
                     </form>
@@ -406,31 +482,37 @@ foreach ($vehicles as $vehicle) {
                                                         </h6>
                                                         <small class="text-muted">
                                                             <?php echo htmlspecialchars($vehicle['model'] ?? 'N/A'); ?>
+                                                            <?php if (!empty($vehicle['manufacturer'])): ?>
+                                                                (<?php echo htmlspecialchars($vehicle['manufacturer']); ?>)
+                                                            <?php endif; ?>
                                                         </small>
                                                     </div>
                                                     <span class="badge <?php 
-                                                        echo $vehicle['asset_status'] == 'Available' ? 'bg-success' : 
-                                                            ($vehicle['asset_status'] == 'In Use' ? 'bg-warning' : 
-                                                            ($vehicle['asset_status'] == 'Maintenance' ? 'bg-info' : 'bg-secondary')); 
+                                                        $status = $vehicle['asset_status'] ?? 'Unknown';
+                                                        if ($status == 'Available' || $status == 'In Stock') echo 'bg-success';
+                                                        elseif ($status == 'In Use') echo 'bg-warning';
+                                                        elseif ($status == 'Maintenance') echo 'bg-info';
+                                                        else echo 'bg-secondary';
                                                     ?> status-badge">
-                                                        <?php echo $vehicle['asset_status'] ?? 'Unknown'; ?>
+                                                        <?php echo htmlspecialchars($status); ?>
                                                     </span>
                                                 </div>
                                                 
                                                 <?php if (!empty($vehicle['image_path'])): ?>
                                                     <div class="text-center mb-3">
-                                                        <img src="<?php echo $vehicle['image_path']; ?>" alt="Vehicle" style="max-height: 100px; object-fit: contain;">
+                                                        <img src="<?php echo htmlspecialchars($vehicle['image_path']); ?>" 
+                                                             alt="Vehicle" class="vehicle-image">
                                                     </div>
                                                 <?php endif; ?>
                                                 
                                                 <div class="row mt-2">
                                                     <div class="col-6">
                                                         <small class="text-muted d-block">Type</small>
-                                                        <strong><?php echo $vehicle['vehicle_type'] ?? 'N/A'; ?></strong>
+                                                        <strong><?php echo htmlspecialchars($vehicle['vehicle_type'] ?? 'N/A'); ?></strong>
                                                     </div>
                                                     <div class="col-6">
                                                         <small class="text-muted d-block">Fuel</small>
-                                                        <strong><?php echo $vehicle['fuel_type'] ?? 'N/A'; ?></strong>
+                                                        <strong><?php echo htmlspecialchars($vehicle['fuel_type'] ?? 'N/A'); ?></strong>
                                                     </div>
                                                     <div class="col-6 mt-2">
                                                         <small class="text-muted d-block">Year</small>
@@ -440,21 +522,37 @@ foreach ($vehicles as $vehicle) {
                                                         <small class="text-muted d-block">Mileage</small>
                                                         <strong><?php echo number_format($vehicle['current_mileage'] ?? 0); ?> km</strong>
                                                     </div>
-                                                    <div class="col-12 mt-2">
+                                                    <div class="col-6 mt-2">
+                                                        <small class="text-muted d-block">Location</small>
+                                                        <strong><?php echo htmlspecialchars($vehicle['location_name'] ?? 'N/A'); ?></strong>
+                                                    </div>
+                                                    <div class="col-6 mt-2">
                                                         <small class="text-muted d-block">Purchase Value</small>
                                                         <strong>RM <?php echo number_format($vehicle['cost'] ?? 0, 2); ?></strong>
                                                     </div>
                                                 </div>
                                                 
+                                                <?php if (!empty($vehicle['assigned_to_name'])): ?>
+                                                <div class="mt-2">
+                                                    <small class="text-muted d-block">Assigned To</small>
+                                                    <strong><?php echo htmlspecialchars($vehicle['assigned_to_name']); ?></strong>
+                                                </div>
+                                                <?php endif; ?>
+                                                
                                                 <div class="mt-3 d-flex gap-2">
-                                                    <button class="btn btn-sm btn-outline-danger" onclick="viewVehicleDetails('<?php echo $vehicle['asset_id']; ?>')">
+                                                    <button class="btn btn-sm btn-outline-danger" onclick="viewVehicleDetails('<?php echo htmlspecialchars($vehicle['asset_id']); ?>')">
                                                         <i class="bi bi-eye"></i> View
                                                     </button>
                                                     <button class="btn btn-sm btn-outline-warning" 
-                                                            onclick="openMovementModal('<?php echo $vehicle['asset_id']; ?>', '<?php echo htmlspecialchars($vehicle['license_plate'] ?? ''); ?>')"
-                                                            <?php echo $vehicle['asset_status'] != 'Available' ? 'disabled' : ''; ?>>
+                                                            onclick="openMovementModal('<?php echo htmlspecialchars($vehicle['asset_id']); ?>', '<?php echo htmlspecialchars($vehicle['license_plate'] ?? ''); ?>')"
+                                                            <?php echo ($vehicle['asset_status'] != 'Available' && $vehicle['asset_status'] != 'In Stock') ? 'disabled' : ''; ?>>
                                                         <i class="bi bi-arrow-right"></i> Move
                                                     </button>
+                                                    <?php if ($vehicle['asset_status'] == 'In Use'): ?>
+                                                    <button class="btn btn-sm btn-outline-success" onclick="completeTrip('<?php echo htmlspecialchars($vehicle['asset_id']); ?>')">
+                                                        <i class="bi bi-check-circle"></i> Complete
+                                                    </button>
+                                                    <?php endif; ?>
                                                 </div>
                                             </div>
                                         </div>
@@ -487,7 +585,8 @@ foreach ($vehicles as $vehicle) {
                                                 <th>Date & Time</th>
                                                 <th>Vehicle</th>
                                                 <th>License Plate</th>
-                                                <th>Destination</th>
+                                                <th>From Location</th>
+                                                <th>To Location</th>
                                                 <th>Purpose</th>
                                                 <th>Performed By</th>
                                                 <th>Status</th>
@@ -497,23 +596,32 @@ foreach ($vehicles as $vehicle) {
                                             <?php if (count($movements) > 0): ?>
                                                 <?php foreach ($movements as $movement): ?>
                                                     <?php 
-                                                    $remarks = explode(' | ', $movement['remarks'] ?? '');
-                                                    $destination = str_replace('Destination: ', '', $remarks[0] ?? '');
-                                                    $purpose = str_replace('Purpose: ', '', $remarks[1] ?? '');
+                                                    // Parse remarks if they exist
+                                                    $remarks = $movement['remarks'] ?? '';
+                                                    $purpose = 'N/A';
+                                                    if (strpos($remarks, 'Purpose:') !== false) {
+                                                        preg_match('/Purpose: ([^|]+)/', $remarks, $matches);
+                                                        $purpose = $matches[1] ?? 'N/A';
+                                                    }
                                                     ?>
                                                     <tr>
                                                         <td><?php echo date('d/m/Y H:i', strtotime($movement['movement_date'])); ?></td>
                                                         <td><?php echo htmlspecialchars($movement['asset_name'] ?? 'N/A'); ?></td>
                                                         <td><?php echo htmlspecialchars($movement['license_plate'] ?? 'N/A'); ?></td>
-                                                        <td><?php echo htmlspecialchars($destination); ?></td>
+                                                        <td><?php echo htmlspecialchars($movement['from_location_name'] ?? 'N/A'); ?></td>
+                                                        <td><?php echo htmlspecialchars($movement['to_location_name'] ?? 'N/A'); ?></td>
                                                         <td><span class="badge bg-info"><?php echo htmlspecialchars($purpose); ?></span></td>
                                                         <td><?php echo htmlspecialchars($movement['performed_by'] ?? 'N/A'); ?></td>
-                                                        <td><span class="badge bg-success"><?php echo $movement['status'] ?? 'Completed'; ?></span></td>
+                                                        <td>
+                                                            <span class="badge <?php echo $movement['status'] == 'Completed' ? 'bg-success' : 'bg-warning'; ?>">
+                                                                <?php echo htmlspecialchars($movement['status'] ?? 'Pending'); ?>
+                                                            </span>
+                                                        </td>
                                                     </tr>
                                                 <?php endforeach; ?>
                                             <?php else: ?>
                                                 <tr>
-                                                    <td colspan="7" class="text-center">No movement records found.</td>
+                                                    <td colspan="8" class="text-center">No movement records found.</td>
                                                 </tr>
                                             <?php endif; ?>
                                         </tbody>
@@ -597,9 +705,10 @@ foreach ($vehicles as $vehicle) {
                                 </select>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Condition *</label>
+                                <label class="form-label">Status *</label>
                                 <select name="condition" class="form-select" required>
                                     <option value="Available">Available</option>
+                                    <option value="In Stock">In Stock</option>
                                     <option value="Maintenance">Maintenance</option>
                                     <option value="Retired">Retired</option>
                                 </select>
@@ -609,7 +718,7 @@ foreach ($vehicles as $vehicle) {
                                 <input type="text" name="registration" class="form-control" required>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Year *</label>
+                                <label class="form-label">Acquisition Date *</label>
                                 <input type="date" name="acquisition_date" class="form-control" required>
                             </div>
                             <div class="col-md-6 mb-3">
@@ -677,8 +786,8 @@ foreach ($vehicles as $vehicle) {
                             <select name="asset_id" id="movementVehicleSelect" class="form-select" required>
                                 <option value="">Choose vehicle...</option>
                                 <?php foreach ($vehicles as $vehicle): ?>
-                                    <?php if ($vehicle['asset_status'] == 'Available'): ?>
-                                        <option value="<?php echo $vehicle['asset_id']; ?>" 
+                                    <?php if ($vehicle['asset_status'] == 'Available' || $vehicle['asset_status'] == 'In Stock'): ?>
+                                        <option value="<?php echo htmlspecialchars($vehicle['asset_id']); ?>" 
                                                 data-plate="<?php echo htmlspecialchars($vehicle['license_plate'] ?? ''); ?>"
                                                 data-model="<?php echo htmlspecialchars($vehicle['model'] ?? ''); ?>"
                                                 data-type="<?php echo htmlspecialchars($vehicle['vehicle_type'] ?? ''); ?>"
@@ -758,7 +867,7 @@ foreach ($vehicles as $vehicle) {
                 document.getElementById('detailPlate').textContent = selected.dataset.plate || 'N/A';
                 document.getElementById('detailModel').textContent = selected.dataset.model || 'N/A';
                 document.getElementById('detailType').textContent = selected.dataset.type || 'N/A';
-                document.getElementById('detailMileage').textContent = selected.dataset.mileage + ' km';
+                document.getElementById('detailMileage').textContent = (selected.dataset.mileage || '0') + ' km';
                 detailsDiv.style.display = 'block';
             } else {
                 detailsDiv.style.display = 'none';
@@ -768,14 +877,23 @@ foreach ($vehicles as $vehicle) {
         function openMovementModal(assetId, licensePlate) {
             const modal = new bootstrap.Modal(document.getElementById('movementModal'));
             const select = document.getElementById('movementVehicleSelect');
-            select.value = assetId;
-            select.dispatchEvent(new Event('change'));
+            if (select) {
+                select.value = assetId;
+                select.dispatchEvent(new Event('change'));
+            }
             modal.show();
         }
 
         function viewVehicleDetails(assetId) {
-            // You can implement this to show detailed vehicle info
-            alert('Vehicle details view for ID: ' + assetId);
+            // Redirect to vehicle details page or show modal
+            window.location.href = 'vehicle_details.php?id=' + assetId;
+        }
+
+        function completeTrip(assetId) {
+            if (confirm('Mark this trip as completed?')) {
+                // Add AJAX call to complete trip
+                window.location.href = 'complete_trip.php?asset_id=' + assetId;
+            }
         }
 
         // Initialize charts
@@ -786,7 +904,7 @@ foreach ($vehicles as $vehicle) {
             new Chart(statusCtx, {
                 type: 'doughnut',
                 data: {
-                    labels: ['Available', 'In Use', 'Maintenance', 'Retired'],
+                    labels: ['Available/In Stock', 'In Use', 'Maintenance', 'Retired'],
                     datasets: [{
                         data: [
                             <?php echo $available_vehicles; ?>,
@@ -796,34 +914,50 @@ foreach ($vehicles as $vehicle) {
                         ],
                         backgroundColor: ['#28a745', '#ffc107', '#17a2b8', '#6c757d']
                     }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
                 }
             });
         }
 
         // Type Chart
-        const typeData = {};
-        <?php foreach ($vehicles as $vehicle): ?>
-            <?php $type = $vehicle['vehicle_type'] ?? 'Others'; ?>
-            typeData['<?php echo $type; ?>'] = (typeData['<?php echo $type; ?>'] || 0) + 1;
-        <?php endforeach; ?>
+        <?php
+        $typeData = [];
+        foreach ($vehicles as $vehicle) {
+            $type = $vehicle['vehicle_type'] ?? 'Others';
+            $typeData[$type] = isset($typeData[$type]) ? $typeData[$type] + 1 : 1;
+        }
+        ?>
         
         const typeCtx = document.getElementById('typeChart')?.getContext('2d');
-        if (typeCtx) {
+        if (typeCtx && <?php echo count($typeData); ?> > 0) {
             new Chart(typeCtx, {
                 type: 'bar',
                 data: {
-                    labels: Object.keys(typeData),
+                    labels: <?php echo json_encode(array_keys($typeData)); ?>,
                     datasets: [{
                         label: 'Number of Vehicles',
-                        data: Object.values(typeData),
+                        data: <?php echo json_encode(array_values($typeData)); ?>,
                         backgroundColor: '#dc3545'
                     }]
                 },
                 options: {
+                    responsive: true,
                     scales: {
                         y: {
                             beginAtZero: true,
                             stepSize: 1
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
                         }
                     }
                 }
@@ -832,27 +966,48 @@ foreach ($vehicles as $vehicle) {
         <?php endif; ?>
 
         <?php if (count($movements) > 0): ?>
-        // Movement Chart
+        // Movement Chart - Last 6 months
         const movementData = {};
-        <?php foreach ($movements as $movement): ?>
-            const date = '<?php echo date('M Y', strtotime($movement['movement_date'])); ?>';
-            movementData[date] = (movementData[date] || 0) + 1;
-        <?php endforeach; ?>
+        <?php 
+        $months = [];
+        $monthCounts = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $month = date('M Y', strtotime("-$i months"));
+            $months[] = $month;
+            $monthCounts[$month] = 0;
+        }
+        
+        foreach ($movements as $movement) {
+            $month = date('M Y', strtotime($movement['movement_date']));
+            if (isset($monthCounts[$month])) {
+                $monthCounts[$month]++;
+            }
+        }
+        ?>
         
         const movementCtx = document.getElementById('movementChart')?.getContext('2d');
         if (movementCtx) {
             new Chart(movementCtx, {
                 type: 'line',
                 data: {
-                    labels: Object.keys(movementData).slice(0, 6),
+                    labels: <?php echo json_encode(array_keys($monthCounts)); ?>,
                     datasets: [{
                         label: 'Vehicle Movements',
-                        data: Object.values(movementData).slice(0, 6),
+                        data: <?php echo json_encode(array_values($monthCounts)); ?>,
                         borderColor: '#dc3545',
                         backgroundColor: 'rgba(220, 53, 69, 0.1)',
                         tension: 0.1,
                         fill: true
                     }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            stepSize: 1
+                        }
+                    }
                 }
             });
         }

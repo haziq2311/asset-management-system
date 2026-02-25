@@ -54,12 +54,12 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="register_asset.php">
+                <a class="nav-link" href="#">
                     <i class="bi bi-plus-circle"></i> Register Assets
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link" href="inventory_report.php">
                     <i class="bi bi-clipboard-data"></i> Inventory / Asset Reports
                 </a>
             </li>

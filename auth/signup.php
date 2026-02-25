@@ -1,349 +1,434 @@
-<?php
-require_once '../includes/db.php';
-
-$error = '';
-$success = '';
-
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $username = $db->sanitize($_POST['username']);
-    $password = $_POST['password'];
-    $confirm_password = $_POST['confirm_password'];
-    $full_name = $db->sanitize($_POST['full_name']);
-    $email = $db->sanitize($_POST['email']);
-    $role = $db->sanitize($_POST['role']);
-    $department_id = $db->sanitize($_POST['department_id'] ?? '');
-    
-    // Validation
-    if (empty($username) || empty($password) || empty($full_name) || empty($email) || empty($role)) {
-        $error = "All fields are required";
-    } elseif ($password !== $confirm_password) {
-        $error = "Passwords do not match";
-    } elseif (strlen($password) < 8) {
-        $error = "Password must be at least 8 characters long";
-    } else {
-        try {
-            // Check if username already exists
-            $check_sql = "SELECT user_id FROM users WHERE username = :username OR email = :email";
-            $check_stmt = $db->pdo->prepare($check_sql);
-            $check_stmt->bindParam(':username', $username, PDO::PARAM_STR);
-            $check_stmt->bindParam(':email', $email, PDO::PARAM_STR);
-            $check_stmt->execute();
-            
-            if ($check_stmt->rowCount() > 0) {
-                $error = "Username or email already exists";
-            } else {
-                // Generate user_id
-                $user_id = 'USR' . date('Ymd') . str_pad(rand(0, 9999), 4, '0', STR_PAD_LEFT);
-                
-                // Hash password
-                $password_hash = password_hash($password, PASSWORD_DEFAULT);
-                
-                // Insert user
-                $sql = "INSERT INTO users (user_id, username, password_hash, full_name, email, role, department_id, is_active, created_at) 
-                        VALUES (:user_id, :username, :password_hash, :full_name, :email, :role, :department_id, 1, NOW())";
-                
-                $stmt = $db->pdo->prepare($sql);
-                $stmt->bindParam(':user_id', $user_id, PDO::PARAM_STR);
-                $stmt->bindParam(':username', $username, PDO::PARAM_STR);
-                $stmt->bindParam(':password_hash', $password_hash, PDO::PARAM_STR);
-                $stmt->bindParam(':full_name', $full_name, PDO::PARAM_STR);
-                $stmt->bindParam(':email', $email, PDO::PARAM_STR);
-                $stmt->bindParam(':role', $role, PDO::PARAM_STR);
-                $stmt->bindParam(':department_id', $department_id, PDO::PARAM_STR);
-                
-                if ($stmt->execute()) {
-                    $success = "Account created successfully! You can now login.";
-                } else {
-                    $error = "Error creating account";
-                }
-            }
-        } catch (PDOException $e) {
-            $error = "Database error: " . $e->getMessage();
-        }
-    }
-}
-?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign Up - Asset Management System</title>
+    <title>Sign up · Asset Management</title>
+    <!-- Bootstrap 5 + icons (keep consistency) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <!-- modern clean fonts & style -->
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #f2f5fa;  /* soft neutral background */
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px 0;
+            padding: 1.5rem;
+            color: #1a2639;
         }
-        .signup-container {
-            background: white;
-            border-radius: 10px;
-            padding: 40px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+
+        /* soft card – clean, rounded, elevated subtly */
+        .signup-card {
+            background: #ffffff;
+            border-radius: 2.5rem;
+            padding: 2.8rem 2.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
             width: 100%;
-            max-width: 500px;
+            max-width: 700px;          /* slightly wider, better for two columns */
+            border: 1px solid rgba(255,255,255,0.3);
+            backdrop-filter: blur(2px);
+            transition: all 0.2s ease;
         }
-        .logo {
+
+        /* header area */
+        .logo-area {
             text-align: center;
-            margin-bottom: 30px;
-            color: #667eea;
+            margin-bottom: 2rem;
         }
-        .btn-signup {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
+        .logo-icon {
+            width: 68px;
+            height: 68px;
+            background: linear-gradient(145deg, #1e2b5e, #2b3b7a);
+            border-radius: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.2rem;
+            box-shadow: 0 12px 18px -8px rgba(30,43,94,0.3);
+        }
+        .logo-icon i {
+            font-size: 2.4rem;
             color: white;
-            padding: 10px 0;
-            width: 100%;
         }
+        h2 {
+            font-weight: 650;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.25rem;
+            color: #121826;
+        }
+        .greeting {
+            color: #5b687c;
+            font-size: 0.95rem;
+        }
+
+        /* form labels & inputs – clean, airy */
+        .form-label {
+            font-weight: 500;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            color: #4b5a73;
+            margin-bottom: 0.3rem;
+        }
+        .form-control, .form-select {
+            border: 1.5px solid #e2e8f0;
+            border-radius: 18px;
+            padding: 0.7rem 1.2rem;
+            font-size: 0.95rem;
+            background-color: #fcfdff;
+            transition: border 0.15s, box-shadow 0.15s;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #2b3b7a;
+            box-shadow: 0 0 0 4px rgba(43,59,122,0.1);
+            outline: none;
+            background-color: #ffffff;
+        }
+
+        /* floating validation / hint styling */
         .password-strength {
-            font-size: 0.875rem;
-            margin-top: 5px;
+            font-size: 0.8rem;
+            margin-top: 0.3rem;
+            min-height: 1.4rem;
+            color: #5b687c;
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
-        .password-match {
-            color: #198754;
-        }
-        .password-mismatch {
-            color: #dc3545;
-        }
-        .password-input-group {
-            position: relative;
-        }
-        .password-feedback {
-            position: absolute;
-            right: 10px;
-            top: 38px;
+        .password-match-icon {
             font-size: 1.2rem;
-            display: none;
+            line-height: 1;
+            transition: opacity 0.1s;
+        }
+        .match-success {
+            color: #0f7b5a;
+        }
+        .match-error {
+            color: #c23b3b;
+        }
+        .hint-text {
+            font-size: 0.75rem;
+            color: #6a7890;
+            margin-top: 0.1rem;
+        }
+        /* custom button */
+        .btn-signup {
+            background: #1e2b5e;
+            border: none;
+            border-radius: 40px;
+            padding: 0.9rem 1.2rem;
+            font-weight: 600;
+            color: white;
+            width: 100%;
+            transition: background 0.15s, transform 0.1s;
+            box-shadow: 0 10px 18px -8px #1e2b5e80;
+            letter-spacing: 0.01em;
+        }
+        .btn-signup:hover {
+            background: #25377a;
+            transform: scale(1.01);
+        }
+        .btn-signup:disabled {
+            opacity: 0.5;
+            pointer-events: none;
+            background: #7c8aa5;
+            box-shadow: none;
+        }
+
+        /* links */
+        .footer-links a {
+            color: #1e2b5e;
+            font-weight: 500;
+            text-decoration: none;
+            border-bottom: 1px dotted #b5c0d0;
+        }
+        .footer-links a:hover {
+            color: #2b3b7a;
+            border-bottom: 2px solid #1e2b5e;
+        }
+        .back-home {
+            font-size: 0.9rem;
+            color: #4a5b79;
+        }
+        .back-home i {
+            font-size: 1rem;
+        }
+
+        /* row spacing */
+        .row.gap-2 > [class*="col-"] {
+            margin-bottom: 0.5rem;
+        }
+
+        /* subtle alert design */
+        .alert-custom {
+            border-radius: 60px;
+            border: none;
+            background: #fef1f0;
+            color: #ab2e2e;
+            padding: 0.8rem 1.5rem;
+            font-size: 0.9rem;
+        }
+        .alert-success-custom {
+            background: #e1f7ed;
+            color: #0d683e;
+            border-radius: 60px;
+        }
+
+        /* department id field optional tag */
+        .optional-badge {
+            font-size: 0.7rem;
+            background: #eaeef5;
+            color: #44566c;
+            border-radius: 40px;
+            padding: 0.15rem 0.7rem;
+            margin-left: 0.75rem;
+            font-weight: 400;
+        }
+
+        hr {
+            opacity: 0.3;
+            margin: 1.5rem 0 0.8rem 0;
         }
     </style>
 </head>
 <body>
-    <div class="signup-container">
-        <div class="logo">
-            <i class="bi bi-box-seam" style="font-size: 48px;"></i>
-            <h2 class="mt-3">Create Account</h2>
-            <p class="text-muted">Join Asset Management System</p>
+
+<div class="signup-card">
+    <!-- logo & greeting -->
+    <div class="logo-area">
+        <div class="logo-icon">
+            <i class="bi bi-box-seam"></i>
         </div>
-        
-        <?php if ($error): ?>
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <?php echo htmlspecialchars($error); ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        <?php endif; ?>
-        
-        <?php if ($success): ?>
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <?php echo htmlspecialchars($success); ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        <?php endif; ?>
-        
-        <form method="POST" action="" id="signupForm">
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label for="full_name" class="form-label">Full Name *</label>
-                    <input type="text" class="form-control" id="full_name" name="full_name" 
-                           required placeholder="John Doe">
-                </div>
-                
-                <div class="col-md-6 mb-3">
-                    <label for="username" class="form-label">Staff ID *</label>
-                    <input type="text" class="form-control" id="username" name="username" 
-                           required placeholder="johndoe">
-                </div>
-            </div>
-            
-            <div class="mb-3">
-                <label for="email" class="form-label">Email Address *</label>
-                <input type="email" class="form-control" id="email" name="email" 
-                       required placeholder="john@example.com">
-            </div>
-            
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label for="password" class="form-label">Password *</label>
-                    <input type="password" class="form-control" id="password" name="password" 
-                           required placeholder="At least 8 characters">
-                    <div class="password-strength">
-                        <div id="passwordLength" class="text-muted">Must be at least 8 characters</div>
-                        <div id="passwordStrength" style="display: none;"></div>
-                    </div>
-                </div>
-                
-                <div class="col-md-6 mb-3">
-                    <label for="confirm_password" class="form-label">Confirm Password *</label>
-                    <div class="password-input-group">
-                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" 
-                               required placeholder="Confirm your password">
-                        <span id="passwordMatchIcon" class="password-feedback"></span>
-                    </div>
-                    <div id="passwordMatchText" class="password-strength"></div>
-                </div>
-            </div>
-            
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label for="role" class="form-label">Role *</label>
-                    <select class="form-select" id="role" name="role" required>
-                        <option value="">Select Role</option>
-                        <option value="admin">Admin</option>
-                        <option value="accountant">Accountant</option>
-                        <option value="logistic_coordinator">Logistic Coordinator</option>
-                        <option value="operation_manager">Operation Manager</option>
-                        <option value="operation_team">Operation Team</option>
-                        <option value="it_operation">IT Operation</option>
-                    </select>
-                </div>
-                
-                <div class="col-md-6 mb-3">
-                    <label for="department_id" class="form-label">Department ID</label>
-                    <input type="text" class="form-control" id="department_id" name="department_id" 
-                           placeholder="Optional">
-                </div>
-            </div>
-            
-            <button type="submit" class="btn btn-signup mb-3" id="submitBtn">
-                <i class="bi bi-person-plus"></i> Create Account
-            </button>
-            
-            <div class="text-center">
-                <p>Already have an account? <a href="login.php" class="text-decoration-none">Sign in</a></p>
-                <a href="../index.php" class="text-decoration-none">
-                    <i class="bi bi-arrow-left"></i> Back to Home
-                </a>
-            </div>
-        </form>
+        <h2>Create an account</h2>
+        <p class="greeting">Join the enterprise asset platform</p>
     </div>
-    
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const passwordInput = document.getElementById('password');
-            const confirmPasswordInput = document.getElementById('confirm_password');
-            const passwordMatchIcon = document.getElementById('passwordMatchIcon');
-            const passwordMatchText = document.getElementById('passwordMatchText');
-            const passwordStrength = document.getElementById('passwordStrength');
-            const passwordLength = document.getElementById('passwordLength');
-            const submitBtn = document.getElementById('submitBtn');
-            
-            function checkPasswordMatch() {
-                const password = passwordInput.value;
-                const confirmPassword = confirmPasswordInput.value;
-                
-                if (confirmPassword === '') {
-                    passwordMatchIcon.style.display = 'none';
-                    passwordMatchText.textContent = '';
-                    passwordMatchText.className = 'password-strength';
-                    return;
-                }
-                
-                if (password === confirmPassword) {
-                    passwordMatchIcon.innerHTML = '<i class="bi bi-check-circle-fill text-success"></i>';
-                    passwordMatchIcon.style.display = 'block';
-                    passwordMatchText.textContent = 'Passwords match';
-                    passwordMatchText.className = 'password-strength password-match';
-                } else {
-                    passwordMatchIcon.innerHTML = '<i class="bi bi-x-circle-fill text-danger"></i>';
-                    passwordMatchIcon.style.display = 'block';
-                    passwordMatchText.textContent = 'Passwords do not match';
-                    passwordMatchText.className = 'password-strength password-mismatch';
-                }
+
+    <!-- dynamic messages (cleaner alerts) -->
+    <?php if (isset($error) && $error): ?>
+        <div class="alert alert-custom d-flex align-items-center mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <?php echo htmlspecialchars($error); ?>
+            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close" style="font-size:0.8rem;"></button>
+        </div>
+    <?php endif; ?>
+
+    <?php if (isset($success) && $success): ?>
+        <div class="alert alert-success-custom d-flex align-items-center mb-4" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <?php echo htmlspecialchars($success); ?>
+            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    <?php endif; ?>
+
+    <!-- ===== FORM ===== (method POST, action stays same) -->
+    <form method="POST" action="" id="cleanSignupForm">
+        <!-- row: full name + staff id (username) -->
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label for="full_name" class="form-label">Full name</label>
+                <input type="text" class="form-control" id="full_name" name="full_name" 
+                       placeholder="e.g. Aisyah binti Ahmad" value="<?php echo isset($_POST['full_name']) ? htmlspecialchars($_POST['full_name']) : ''; ?>" required>
+            </div>
+            <div class="col-md-6">
+                <label for="username" class="form-label">Staff ID</label>
+                <input type="text" class="form-control" id="username" name="username" 
+                       placeholder="e.g. aisyah2025" value="<?php echo isset($_POST['username']) ? htmlspecialchars($_POST['username']) : ''; ?>" required>
+                <div class="hint-text">unique identifier</div>
+            </div>
+        </div>
+
+        <!-- email (full width) -->
+        <div class="mb-4">
+            <label for="email" class="form-label">Email address</label>
+            <input type="email" class="form-control" id="email" name="email" 
+                   placeholder="you@company.com" value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>" required>
+        </div>
+
+        <!-- password + confirm (row) with realtime validation -->
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" class="form-control" id="password" name="password" 
+                       placeholder="········" required>
+                <!-- strength & length hints live here -->
+                <div class="password-strength" id="passwordLengthHint">
+                    <i class="bi bi-info-circle"></i> <span>min. 8 characters</span>
+                </div>
+                <div class="password-strength" id="passwordStrengthMsg"></div>
+            </div>
+            <div class="col-md-6">
+                <label for="confirm_password" class="form-label">Confirm password</label>
+                <div class="position-relative">
+                    <input type="password" class="form-control" id="confirm_password" name="confirm_password" 
+                           placeholder="········" required>
+                    <span id="confirmIcon" class="password-match-icon position-absolute end-0 top-50 translate-middle-y me-3" style="display: none;"></span>
+                </div>
+                <div class="password-strength" id="confirmMsg"></div>
+            </div>
+        </div>
+
+        <!-- role + department (row) -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-7">
+                <label for="role" class="form-label">Role <span class="text-danger">*</span></label>
+                <select class="form-select" id="role" name="role" required>
+                    <option value="" selected disabled>– select role –</option>
+                    <option value="admin">Admin</option>
+                    <option value="accountant">Accountant</option>
+                    <option value="logistic_coordinator">Logistic Coordinator</option>
+                    <option value="operation_manager">Operation Manager</option>
+                    <option value="operation_team">Operation Team</option>
+                    <option value="it_operation">IT Operation</option>
+                </select>
+            </div>
+            <div class="col-md-5">
+                <label for="department_id" class="form-label">
+                    Department <span class="optional-badge">optional</span>
+                </label>
+                <input type="text" class="form-control" id="department_id" name="department_id" 
+                       placeholder="e.g. DPT-210" value="<?php echo isset($_POST['department_id']) ? htmlspecialchars($_POST['department_id']) : ''; ?>">
+            </div>
+        </div>
+
+        <!-- submit button -->
+        <button type="submit" class="btn btn-signup" id="signupSubmitBtn">
+            <i class="bi bi-person-plus me-2"></i>Create account
+        </button>
+
+        <!-- footer links: sign in + back home -->
+        <div class="d-flex flex-wrap align-items-center justify-content-between mt-4 footer-links">
+            <span class="back-home">
+                <a href="../index.php" class="text-decoration-none">
+                    <i class="bi bi-arrow-left me-1"></i> Home
+                </a>
+            </span>
+            <span>
+                <a href="login.php" class="text-decoration-none">Sign in <i class="bi bi-box-arrow-in-right ms-1"></i></a>
+            </span>
+        </div>
+        <hr>
+        <p class="text-center text-muted small mb-0">© 2026 Data Jasa Plus – enterprise ready</p>
+    </form>
+</div>
+
+<!-- Bootstrap JS (for alert close etc) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Real‑time validation: clean, user-friendly feedback -->
+<script>
+    (function() {
+        const password = document.getElementById('password');
+        const confirm = document.getElementById('confirm_password');
+        const confirmIcon = document.getElementById('confirmIcon');
+        const confirmMsg = document.getElementById('confirmMsg');
+        const passwordStrengthMsg = document.getElementById('passwordStrengthMsg');
+        const passwordLengthHint = document.getElementById('passwordLengthHint');
+        const submitBtn = document.getElementById('signupSubmitBtn');
+
+        // optional: prefill role if validation fails? we keep it as is.
+
+        function updatePasswordStrength() {
+            const val = password.value;
+            if (val.length === 0) {
+                passwordStrengthMsg.innerHTML = '';
+                passwordLengthHint.innerHTML = '<i class="bi bi-info-circle"></i> <span>min. 8 characters</span>';
+                return;
             }
-            
-            function checkPasswordStrength() {
-                const password = passwordInput.value;
-                
-                if (password.length === 0) {
-                    passwordLength.style.display = 'block';
-                    passwordStrength.style.display = 'none';
-                    return;
-                }
-                
-                passwordLength.style.display = 'none';
-                passwordStrength.style.display = 'block';
-                
-                let strength = 0;
-                let message = '';
-                let color = '';
-                
-                // Check length
-                if (password.length >= 8) strength++;
-                
-                // Check for mixed case
-                if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
-                
-                // Check for numbers
-                if (/\d/.test(password)) strength++;
-                
-                // Check for special characters
-                if (/[^A-Za-z0-9]/.test(password)) strength++;
-                
-                switch(strength) {
-                    case 0:
-                    case 1:
-                        message = 'Very Weak';
-                        color = '#dc3545';
-                        break;
-                    case 2:
-                        message = 'Weak';
-                        color = '#fd7e14';
-                        break;
-                    case 3:
-                        message = 'Good';
-                        color = '#ffc107';
-                        break;
-                    case 4:
-                        message = 'Strong';
-                        color = '#198754';
-                        break;
-                }
-                
-                passwordStrength.innerHTML = `Strength: <span style="color: ${color}; font-weight: bold;">${message}</span>`;
-                passwordStrength.style.color = color;
+
+            let strength = 0;
+            if (val.length >= 8) strength++;                     // length ok
+            if (/[a-z]/.test(val) && /[A-Z]/.test(val)) strength++;  // mixed case
+            if (/\d/.test(val)) strength++;                      // has number
+            if (/[^A-Za-z0-9]/.test(val)) strength++;            // special char
+
+            let msg = '', color = '#4b5a73';
+            if (strength <= 1) { msg = '✗ too weak'; color = '#c23b3b'; }
+            else if (strength === 2) { msg = '⚡ weak'; color = '#c07c1b'; }
+            else if (strength === 3) { msg = '● good'; color = '#2c7d9c'; }
+            else if (strength >= 4) { msg = '★ strong'; color = '#0f7b5a'; }
+
+            passwordStrengthMsg.innerHTML = `<span style="color:${color}; font-weight:500;">${msg}</span>`;
+            passwordLengthHint.innerHTML = ''; // hide the static hint
+        }
+
+        function matchPasswords() {
+            const pass = password.value;
+            const conf = confirm.value;
+
+            if (conf === '') {
+                confirmIcon.style.display = 'none';
+                confirmMsg.innerHTML = '';
+                return;
             }
-            
-            function validateForm() {
-                const password = passwordInput.value;
-                const confirmPassword = confirmPasswordInput.value;
-                
-                if (password !== confirmPassword) {
-                    submitBtn.disabled = true;
-                    submitBtn.style.opacity = '0.6';
-                } else {
-                    submitBtn.disabled = false;
-                    submitBtn.style.opacity = '1';
-                }
+
+            if (pass === conf) {
+                confirmIcon.style.display = 'inline';
+                confirmIcon.innerHTML = '<i class="bi bi-check-circle-fill match-success"></i>';
+                confirmMsg.innerHTML = '<span class="match-success">✓ passwords match</span>';
+            } else {
+                confirmIcon.style.display = 'inline';
+                confirmIcon.innerHTML = '<i class="bi bi-exclamation-circle-fill match-error"></i>';
+                confirmMsg.innerHTML = '<span class="match-error">✗ passwords do not match</span>';
             }
-            
-            // Event listeners
-            passwordInput.addEventListener('input', function() {
-                checkPasswordStrength();
-                checkPasswordMatch();
-                validateForm();
-            });
-            
-            confirmPasswordInput.addEventListener('input', function() {
-                checkPasswordMatch();
-                validateForm();
-            });
-            
-            // Real-time validation on keyup
-            confirmPasswordInput.addEventListener('keyup', checkPasswordMatch);
-            
-            // Check on page load in case browser autofilled
-            setTimeout(() => {
-                checkPasswordMatch();
-                checkPasswordStrength();
-                validateForm();
-            }, 100);
+        }
+
+        function toggleSubmit() {
+            const pass = password.value;
+            const conf = confirm.value;
+            const roleSelected = document.getElementById('role').value !== '';
+
+            // enable only if passwords match, both length >=8, and required fields (basic check)
+            if (pass === conf && pass.length >= 8 && roleSelected) {
+                submitBtn.disabled = false;
+            } else {
+                submitBtn.disabled = true;
+            }
+        }
+
+        // events
+        password.addEventListener('input', () => {
+            updatePasswordStrength();
+            matchPasswords();
+            toggleSubmit();
         });
-    </script>
+        confirm.addEventListener('input', () => {
+            matchPasswords();
+            toggleSubmit();
+        });
+        document.getElementById('role').addEventListener('change', toggleSubmit);
+
+        // also check on page load (in case browser prefills)
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                updatePasswordStrength();
+                matchPasswords();
+                toggleSubmit();
+            }, 80);
+        });
+
+        // manually add bootstrap dismiss to dynamic alerts (they already have data-bs-dismiss)
+    })();
+</script>
+
+<!-- optionally pre-select role if form posted -->
+<?php if (isset($_POST['role']) && !empty($_POST['role'])): ?>
+<script>
+    document.getElementById('role').value = "<?php echo htmlspecialchars($_POST['role'], ENT_QUOTES); ?>";
+    // retrigger validation after setting value
+    setTimeout(() => {
+        if (typeof toggleSubmit === 'function') toggleSubmit();
+    }, 100);
+</script>
+<?php endif; ?>
+
 </body>
 </html>
