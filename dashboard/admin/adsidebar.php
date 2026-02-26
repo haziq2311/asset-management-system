@@ -18,23 +18,23 @@ check_auth(['admin', 'it_operation']); // Only admin can access
                     <i class="bi bi-speedometer2"></i> Dashboard
                 </a>
             </li>
-            <li class="nav-item">
+            <!--<li class="nav-item">
                 <a class="nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'user_manage.php') ? 'active' : ''; ?>" href="user_manage.php">
                     <i class="bi bi-people"></i> User Management
-                </a>
+                </a>--> 
             </li>
             <li class="nav-item">
-                <a class="nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'departasset.php') ? 'active' : ''; ?>" href="departasset.php">
+                <a class="nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'assets.php') ? 'active' : ''; ?>" href="assets.php">
                     <i class="bi bi-box"></i> Assets
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'reports.php') ? 'active' : ''; ?>" href="#">
+                <a class="nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'reports.php') ? 'active' : ''; ?>" href="reports.php">
                     <i class="bi bi-clipboard-data"></i> Reports
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'settings.php') ? 'active' : ''; ?>" href="#">
+                <a class="nav-link <?php echo (basename($_SERVER['PHP_SELF']) == '#') ? 'active' : ''; ?>" href="#">
                     <i class="bi bi-gear"></i> Settings
                 </a>
             </li>
