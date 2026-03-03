@@ -104,7 +104,7 @@ check_auth(['it_operation']); // Only admin can access
 
             <!-- Operations Access -->
             <div class="col-md-3">
-                <a href="../operations/manager_dashboard.php" class="text-decoration-none">
+                <a href="../operation_manager/dashboard.php" class="text-decoration-none">
                     <div class="card dashboard-card">
                         <div class="card-body text-center">
                             <div class="card-icon text-info">
