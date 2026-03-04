@@ -64,14 +64,9 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
-                    <i class="bi bi-arrow-left-right"></i> Issue / Return 
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="#">
+                 <a class="nav-link" href="approvals.php">
                     <i class="bi bi-check-circle"></i> Approvals / Requests
-                </a>
+                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" href="vehicle_management.php">

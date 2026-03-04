@@ -1,6 +1,41 @@
 <?php
 require_once '../../includes/check_auth.php';
 check_auth(['operation_team']);
+require_once '../../includes/db.php';
+
+$conn    = $db->conn;
+$user_id = $_SESSION['user_id'];
+
+$s = $conn->prepare("SELECT COUNT(*) as c FROM assets WHERE assigned_to_user_id = ? AND is_active = 1");
+$s->bind_param("s", $user_id); $s->execute();
+$my_assets_count = $s->get_result()->fetch_assoc()['c']; $s->close();
+
+$total_assets      = $conn->query("SELECT COUNT(*) as c FROM assets WHERE is_active = 1")->fetch_assoc()['c'];
+$assigned_count    = $conn->query("SELECT COUNT(*) as c FROM assets WHERE asset_status = 'Assigned' AND is_active = 1")->fetch_assoc()['c'];
+$in_stock_count    = $conn->query("SELECT COUNT(*) as c FROM assets WHERE asset_status = 'In Stock' AND is_active = 1")->fetch_assoc()['c'];
+$maintenance_count = $conn->query("SELECT COUNT(*) as c FROM assets WHERE asset_status = 'Maintenance' AND is_active = 1")->fetch_assoc()['c'];
+$utilization       = $total_assets > 0 ? round(($assigned_count / $total_assets) * 100, 1) : 0;
+
+$s = $conn->prepare("SELECT COUNT(*) as c FROM asset_movements WHERE performed_by_user_id = ? AND status = 'Pending'");
+$s->bind_param("s", $user_id); $s->execute();
+$pending_count = $s->get_result()->fetch_assoc()['c']; $s->close();
+
+$s = $conn->prepare("SELECT COUNT(*) as c FROM asset_movements WHERE performed_by_user_id = ? AND status = 'Approved'");
+$s->bind_param("s", $user_id); $s->execute();
+$approved_count = $s->get_result()->fetch_assoc()['c']; $s->close();
+
+$s = $conn->prepare("SELECT COUNT(*) as c FROM asset_movements WHERE performed_by_user_id = ? AND status = 'Rejected'");
+$s->bind_param("s", $user_id); $s->execute();
+$rejected_count = $s->get_result()->fetch_assoc()['c']; $s->close();
+
+$total_req    = $approved_count + $pending_count + $rejected_count;
+$approved_pct = $total_req > 0 ? round(($approved_count / $total_req) * 100) : 0;
+$pending_pct  = $total_req > 0 ? round(($pending_count  / $total_req) * 100) : 0;
+$rejected_pct = $total_req > 0 ? round(($rejected_count / $total_req) * 100) : 0;
+
+$s = $conn->prepare("SELECT m.*, a.asset_name FROM asset_movements m LEFT JOIN assets a ON m.asset_id = a.asset_id WHERE m.performed_by_user_id = ? ORDER BY m.movement_date DESC LIMIT 4");
+$s->bind_param("s", $user_id); $s->execute();
+$recent_movements = $s->get_result(); $s->close();
 ?>
 
 <!DOCTYPE html>
@@ -102,8 +137,8 @@ check_auth(['operation_team']);
                     <div class="text-center mb-4">
                         <i class="fas fa-chart-line" style="font-size: 48px;"></i>
                         <h4 class="mt-2">Operations Dashboard</h4>
-                        <p class="mb-0">Welcome, <?php echo htmlspecialchars(get_user_name()); ?></p>
-                        <small class="text-light">Manager</small>
+                        <p class="mb-0">Welcome, <?php echo htmlspecialchars($_SESSION['full_name'] ?? 'User'); ?></p>
+                        <small class="text-light">Operation Team</small>
                     </div>
                     
                     <ul class="nav flex-column">
@@ -147,10 +182,23 @@ check_auth(['operation_team']);
                                 <i class="fas fa-cogs"></i> Process Optimization
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="issue_return.php">
+                                <i class="fas fa-exchange-alt"></i> Issue / Return
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="history.php">
+                                <i class="fas fa-clipboard-check"></i> My Requests
+                                <?php if ($pending_count > 0): ?>
+                                    <span class="badge bg-danger rounded-pill ms-1"><?php echo $pending_count; ?></span>
+                                <?php endif; ?>
+                            </a>
+                        </li>
                         <li class="nav-item mt-4">
                             <a class="nav-link text-warning" href="#">
                                 <i class="fas fa-bell"></i> Alerts
-                                <span class="badge bg-danger rounded-pill">5</span>
+                                <?php if ($pending_count > 0): ?><span class="badge bg-danger rounded-pill"><?php echo $pending_count; ?></span><?php endif; ?>
                             </a>
                         </li>
                         <li class="nav-item">
@@ -171,12 +219,15 @@ check_auth(['operation_team']);
                             <p>Monitor performance, optimize processes, and manage operations</p>
                         </div>
                         <div class="btn-group">
-                            <button class="btn btn-primary">
-                                <i class="fas fa-download"></i> Export Report
-                            </button>
-                            <button class="btn btn-outline-primary">
-                                <i class="fas fa-cog"></i> Settings
-                            </button>
+                            <a href="issue_return.php" class="btn btn-primary">
+                                <i class="fas fa-exchange-alt"></i> Issue / Return
+                            </a>
+                            <a href="my_requests.php" class="btn btn-outline-primary">
+                                <i class="fas fa-clipboard-check"></i> My Requests
+                                <?php if ($pending_count > 0): ?>
+                                    <span class="badge bg-warning text-dark ms-1"><?php echo $pending_count; ?></span>
+                                <?php endif; ?>
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -188,8 +239,8 @@ check_auth(['operation_team']);
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
                                     <h6>Asset Utilization</h6>
-                                    <h2>78%</h2>
-                                    <span class="kpi-badge" style="background: rgba(255,255,255,0.3);">+2.5%</span>
+                                    <h2><?php echo $utilization; ?>%</h2>
+                                    <span class="kpi-badge" style="background: rgba(255,255,255,0.3);"><?php echo $assigned_count; ?>/<?php echo $total_assets; ?> assigned</span>
                                 </div>
                                 <i class="fas fa-chart-bar" style="font-size: 40px; opacity: 0.5;"></i>
                             </div>
@@ -200,9 +251,9 @@ check_auth(['operation_team']);
                         <div class="metric-card" style="background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
-                                    <h6>Operational Efficiency</h6>
-                                    <h2>92%</h2>
-                                    <span class="kpi-badge" style="background: rgba(255,255,255,0.3);">+1.8%</span>
+                                    <h6>My Assigned Assets</h6>
+                                    <h2><?php echo $my_assets_count; ?></h2>
+                                    <span class="kpi-badge" style="background: rgba(255,255,255,0.3);">Currently held</span>
                                 </div>
                                 <i class="fas fa-bolt" style="font-size: 40px; opacity: 0.5;"></i>
                             </div>
@@ -213,9 +264,9 @@ check_auth(['operation_team']);
                         <div class="metric-card" style="background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
-                                    <h6>Maintenance Uptime</h6>
-                                    <h2>96.5%</h2>
-                                    <span class="kpi-badge" style="background: rgba(255,255,255,0.3);">+0.5%</span>
+                                    <h6>Pending Requests</h6>
+                                    <h2><?php echo $pending_count; ?></h2>
+                                    <span class="kpi-badge" style="background: rgba(255,255,255,0.3);">Awaiting approval</span>
                                 </div>
                                 <i class="fas fa-wrench" style="font-size: 40px; opacity: 0.5;"></i>
                             </div>
@@ -226,9 +277,9 @@ check_auth(['operation_team']);
                         <div class="metric-card" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
-                                    <h6>Downtime Rate</h6>
-                                    <h2>3.5%</h2>
-                                    <span class="kpi-badge" style="background: rgba(255,255,255,0.3);">-1.2%</span>
+                                    <h6>Under Maintenance</h6>
+                                    <h2><?php echo $maintenance_count; ?></h2>
+                                    <span class="kpi-badge" style="background: rgba(255,255,255,0.3);">Assets affected</span>
                                 </div>
                                 <i class="fas fa-exclamation-triangle" style="font-size: 40px; opacity: 0.5;"></i>
                             </div>
@@ -270,29 +321,29 @@ check_auth(['operation_team']);
                                     <div class="col-md-3 mb-3">
                                         <div class="border rounded p-3">
                                             <i class="fas fa-play-circle fa-2x text-primary"></i>
-                                            <h5 class="mt-2">45</h5>
-                                            <small>In Progress</small>
+                                            <h5 class="mt-2"><?php echo $assigned_count; ?></h5>
+                                            <small>Assigned</small>
                                         </div>
                                     </div>
                                     <div class="col-md-3 mb-3">
                                         <div class="border rounded p-3">
                                             <i class="fas fa-check-circle fa-2x text-success"></i>
-                                            <h5 class="mt-2">128</h5>
-                                            <small>Completed</small>
+                                            <h5 class="mt-2"><?php echo $in_stock_count; ?></h5>
+                                            <small>In Stock</small>
                                         </div>
                                     </div>
                                     <div class="col-md-3 mb-3">
                                         <div class="border rounded p-3">
                                             <i class="fas fa-pause-circle fa-2x text-warning"></i>
-                                            <h5 class="mt-2">12</h5>
-                                            <small>On Hold</small>
+                                            <h5 class="mt-2"><?php echo $maintenance_count; ?></h5>
+                                            <small>Maintenance</small>
                                         </div>
                                     </div>
                                     <div class="col-md-3 mb-3">
                                         <div class="border rounded p-3">
                                             <i class="fas fa-exclamation-circle fa-2x text-danger"></i>
-                                            <h5 class="mt-2">7</h5>
-                                            <small>Delayed</small>
+                                            <h5 class="mt-2"><?php echo $pending_count; ?></h5>
+                                            <small>My Pending</small>
                                         </div>
                                     </div>
                                 </div>
@@ -302,41 +353,44 @@ check_auth(['operation_team']);
                     
                     <!-- Right Sidebar - Quick Stats -->
                     <div class="col-md-4">
-                        <!-- Team Performance -->
+                        <!-- My Request Summary -->
                         <div class="card mb-4">
                             <div class="card-header bg-success text-white">
                                 <h5 class="card-title mb-0">
-                                    <i class="fas fa-users"></i> Team Performance
+                                    <i class="fas fa-users"></i> My Request Summary
                                 </h5>
                             </div>
                             <div class="card-body">
                                 <div class="mb-3">
                                     <div class="d-flex justify-content-between mb-1">
-                                        <span>Warehouse Team</span>
-                                        <span>85%</span>
+                                        <span>Approved</span>
+                                        <span><?php echo $approved_count; ?></span>
                                     </div>
                                     <div class="progress" style="height: 8px;">
-                                        <div class="progress-bar bg-success" style="width: 85%"></div>
+                                        <div class="progress-bar bg-success" style="width: <?php echo $approved_pct; ?>%"></div>
                                     </div>
                                 </div>
                                 <div class="mb-3">
                                     <div class="d-flex justify-content-between mb-1">
-                                        <span>Maintenance Team</span>
-                                        <span>92%</span>
+                                        <span>Pending</span>
+                                        <span><?php echo $pending_count; ?></span>
                                     </div>
                                     <div class="progress" style="height: 8px;">
-                                        <div class="progress-bar bg-primary" style="width: 92%"></div>
+                                        <div class="progress-bar bg-warning" style="width: <?php echo $pending_pct; ?>%"></div>
                                     </div>
                                 </div>
                                 <div class="mb-3">
                                     <div class="d-flex justify-content-between mb-1">
-                                        <span>Operations Team</span>
-                                        <span>78%</span>
+                                        <span>Rejected</span>
+                                        <span><?php echo $rejected_count; ?></span>
                                     </div>
                                     <div class="progress" style="height: 8px;">
-                                        <div class="progress-bar bg-info" style="width: 78%"></div>
+                                        <div class="progress-bar bg-danger" style="width: <?php echo $rejected_pct; ?>%"></div>
                                     </div>
                                 </div>
+                                <a href="history.php" class="btn btn-outline-success btn-sm w-100 mt-1">
+                                    <i class="fas fa-list me-1"></i> View All My Requests
+                                </a>
                             </div>
                         </div>
                         
@@ -349,22 +403,24 @@ check_auth(['operation_team']);
                             </div>
                             <div class="card-body">
                                 <div class="timeline">
-                                    <div class="timeline-item">
-                                        <small class="text-muted">10:30 AM</small>
-                                        <p class="mb-1">Process optimization approved</p>
-                                    </div>
-                                    <div class="timeline-item">
-                                        <small class="text-muted">9:45 AM</small>
-                                        <p class="mb-1">New workflow implemented</p>
-                                    </div>
-                                    <div class="timeline-item">
-                                        <small class="text-muted">Yesterday, 3:15 PM</small>
-                                        <p class="mb-1">Performance review completed</p>
-                                    </div>
-                                    <div class="timeline-item">
-                                        <small class="text-muted">Yesterday, 11:00 AM</small>
-                                        <p class="mb-1">Team meeting conducted</p>
-                                    </div>
+                                    <?php if ($recent_movements && $recent_movements->num_rows > 0): ?>
+                                        <?php while ($m = $recent_movements->fetch_assoc()): ?>
+                                        <div class="timeline-item">
+                                            <small class="text-muted"><?php echo date('d/m/Y H:i', strtotime($m['movement_date'])); ?></small>
+                                            <p class="mb-1">
+                                                <span class="badge <?php echo $m['movement_type'] === 'Issue' ? 'bg-primary' : 'bg-secondary'; ?> me-1">
+                                                    <?php echo $m['movement_type']; ?>
+                                                </span>
+                                                <?php echo htmlspecialchars($m['asset_name'] ?? $m['asset_id']); ?>
+                                            </p>
+                                            <small class="<?php echo $m['status'] === 'Approved' ? 'text-success' : ($m['status'] === 'Rejected' ? 'text-danger' : 'text-warning'); ?>">
+                                                &#9679; <?php echo $m['status']; ?>
+                                            </small>
+                                        </div>
+                                        <?php endwhile; ?>
+                                    <?php else: ?>
+                                        <p class="text-muted small">No recent activity yet.</p>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>
@@ -379,32 +435,45 @@ check_auth(['operation_team']);
                         </h5>
                     </div>
                     <div class="card-body">
+                        <?php if ($pending_count > 0): ?>
                         <div class="alert alert-warning d-flex align-items-center" role="alert">
                             <i class="fas fa-clock me-3 fa-2x"></i>
                             <div class="flex-grow-1">
-                                <h6 class="alert-heading mb-1">Process Delay - Asset Transfer</h6>
-                                <p class="mb-0">Asset transfer from Warehouse A to B delayed by 2 hours</p>
+                                <h6 class="alert-heading mb-1">Pending Requests</h6>
+                                <p class="mb-0">You have <strong><?php echo $pending_count; ?></strong> request(s) awaiting approval from the Logistics team.</p>
                             </div>
-                            <button class="btn btn-outline-warning btn-sm">Resolve</button>
+                            <a href="my_requests.php" class="btn btn-outline-warning btn-sm">View</a>
                         </div>
-                        
+                        <?php endif; ?>
+                        <?php if ($my_assets_count > 0): ?>
+                        <div class="alert alert-info d-flex align-items-center" role="alert">
+                            <i class="fas fa-box me-3 fa-2x"></i>
+                            <div class="flex-grow-1">
+                                <h6 class="alert-heading mb-1">Assets in Your Possession</h6>
+                                <p class="mb-0">You currently hold <strong><?php echo $my_assets_count; ?></strong> asset(s). Return them when no longer needed.</p>
+                            </div>
+                            <a href="issue_return.php" class="btn btn-outline-info btn-sm">Return</a>
+                        </div>
+                        <?php endif; ?>
+                        <?php if ($maintenance_count > 0): ?>
                         <div class="alert alert-danger d-flex align-items-center" role="alert">
                             <i class="fas fa-tools me-3 fa-2x"></i>
                             <div class="flex-grow-1">
                                 <h6 class="alert-heading mb-1">Maintenance Overdue</h6>
-                                <p class="mb-0">3 critical assets have overdue maintenance schedules</p>
+                                <p class="mb-0"><strong><?php echo $maintenance_count; ?></strong> critical asset(s) have overdue maintenance schedules.</p>
                             </div>
                             <button class="btn btn-outline-danger btn-sm">Schedule</button>
                         </div>
-                        
-                        <div class="alert alert-info d-flex align-items-center" role="alert">
-                            <i class="fas fa-chart-line me-3 fa-2x"></i>
-                            <div class="flex-grow-1">
-                                <h6 class="alert-heading mb-1">Performance Drop Detected</h6>
-                                <p class="mb-0">Warehouse throughput decreased by 15% this week</p>
+                        <?php endif; ?>
+                        <?php if ($pending_count === 0 && $my_assets_count === 0 && $maintenance_count === 0): ?>
+                        <div class="alert alert-success d-flex align-items-center mb-0" role="alert">
+                            <i class="fas fa-check-circle me-3 fa-2x"></i>
+                            <div>
+                                <h6 class="alert-heading mb-1">All Clear!</h6>
+                                <p class="mb-0">No pending actions. Everything is up to date.</p>
                             </div>
-                            <button class="btn btn-outline-info btn-sm">Analyze</button>
                         </div>
+                        <?php endif; ?>
                     </div>
                 </div>
                 
