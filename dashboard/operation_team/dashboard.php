@@ -145,7 +145,7 @@ $recent_movements = $s->get_result(); $s->close();
                             <a href="issue_return.php" class="btn btn-primary">
                                 <i class="fas fa-exchange-alt"></i> Issue / Return
                             </a>
-                            <a href="my_requests.php" class="btn btn-outline-primary">
+                            <a href="history.php" class="btn btn-outline-primary">
                                 <i class="fas fa-clipboard-check"></i> My Requests
                                 <?php if ($pending_count > 0): ?>
                                     <span class="badge bg-warning text-dark ms-1"><?php echo $pending_count; ?></span>
@@ -311,7 +311,7 @@ $recent_movements = $s->get_result(); $s->close();
                                         <div class="progress-bar bg-danger" style="width: <?php echo $rejected_pct; ?>%"></div>
                                     </div>
                                 </div>
-                                <a href="my_requests.php" class="btn btn-outline-success btn-sm w-100 mt-1">
+                                <a href="history.php" class="btn btn-outline-success btn-sm w-100 mt-1">
                                     <i class="fas fa-list me-1"></i> View All My Requests
                                 </a>
                             </div>
@@ -365,7 +365,7 @@ $recent_movements = $s->get_result(); $s->close();
                                 <h6 class="alert-heading mb-1">Pending Requests</h6>
                                 <p class="mb-0">You have <strong><?php echo $pending_count; ?></strong> request(s) awaiting approval from the Logistics team.</p>
                             </div>
-                            <a href="my_requests.php" class="btn btn-outline-warning btn-sm">View</a>
+                            <a href="history.php" class="btn btn-outline-warning btn-sm">View</a>
                         </div>
                         <?php endif; ?>
                         <?php if ($my_assets_count > 0): ?>

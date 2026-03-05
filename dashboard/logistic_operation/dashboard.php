@@ -26,7 +26,12 @@ check_auth(['logistic_coordinator','it_operation']);
                             <h1>Warehouse Dashboard</h1>
                             <p>Manage inventory, track assets, and oversee warehouse operations</p>
                         </div>
-                        <div>
+                        <div class="d-flex gap-2">
+                            <?php if ($_SESSION['role'] === 'it_operation'): ?>
+                            <a href="../information_system/dashboard.php" class="btn btn-dark">
+                                <i class="bi bi-house-fill me-1"></i> IT Dashboard
+                            </a>
+                            <?php endif; ?>
                             <button class="btn btn-danger">
                                 <i class="bi bi-plus-circle"></i> New Receiving
                             </button>

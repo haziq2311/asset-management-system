@@ -1,6 +1,21 @@
 <?php
 require_once '../../includes/check_auth.php';
-check_auth(['it_operation']); // Only admin can access
+check_auth(['it_operation']);
+require_once '../../includes/db.php';
+
+$conn = $db->conn;
+
+// Total active users
+$total_users = $conn->query("SELECT COUNT(*) as c FROM users WHERE is_active = 1")->fetch_assoc()['c'];
+
+// Total active assets
+$total_assets = $conn->query("SELECT COUNT(*) as c FROM assets WHERE is_active = 1")->fetch_assoc()['c'];
+
+// Pending approvals from asset_movements
+$pending_approvals = $conn->query("SELECT COUNT(*) as c FROM asset_movements WHERE status = 'Pending'")->fetch_assoc()['c'];
+
+// Active sessions (valid sessions with activity in last 30 minutes)
+$active_sessions = $conn->query("SELECT COUNT(*) as c FROM user_sessions WHERE is_valid = 1 AND last_activity >= DATE_SUB(NOW(), INTERVAL 30 MINUTE)")->fetch_assoc()['c'];
 ?>
 
 <!DOCTYPE html>
@@ -144,25 +159,25 @@ check_auth(['it_operation']); // Only admin can access
                         <div class="row text-center">
                             <div class="col-md-3">
                                 <div class="border rounded p-3">
-                                    <h3>150</h3>
+                                    <h3><?php echo $total_users; ?></h3>
                                     <p class="text-muted mb-0">Total Users</p>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="border rounded p-3">
-                                    <h3>2,450</h3>
+                                    <h3><?php echo number_format($total_assets); ?></h3>
                                     <p class="text-muted mb-0">Total Assets</p>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="border rounded p-3">
-                                    <h3>98%</h3>
-                                    <p class="text-muted mb-0">System Uptime</p>
+                                    <h3><?php echo $pending_approvals; ?></h3>
+                                    <p class="text-muted mb-0">Pending Approvals</p>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="border rounded p-3">
-                                    <h3>12</h3>
+                                    <h3><?php echo $active_sessions; ?></h3>
                                     <p class="text-muted mb-0">Active Sessions</p>
                                 </div>
                             </div>
