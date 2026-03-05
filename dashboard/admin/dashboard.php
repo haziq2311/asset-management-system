@@ -557,13 +557,18 @@ $user_activity = $total_users > 0 ? round($active_users / $total_users * 100) : 
                     <div class="row align-items-center">
                         <div class="col-md-6">
                             <h1 class="welcome-title">
-                                Welcome back, <?php echo htmlspecialchars(get_user_name()); ?>! 👋
+                                Welcome back, <?php echo htmlspecialchars($_SESSION['full_name'] ?? 'User'); ?>! 👋
                             </h1>
                             <p class="welcome-subtitle">
                                 Here's what's happening with your assets today.
                             </p>
                         </div>
-                        <div class="col-md-6 text-md-end">
+                        <div class="col-md-6 text-md-end d-flex align-items-center justify-content-md-end gap-2 flex-wrap">
+                            <?php if ($_SESSION['role'] === 'it_operation'): ?>
+                            <a href="../information_system/dashboard.php" class="btn btn-dark btn-sm">
+                                <i class="bi bi-house-fill me-1"></i> IT Dashboard
+                            </a>
+                            <?php endif; ?>
                             <span class="date-badge">
                                 <i class="bi bi-calendar3 me-2"></i><?php echo date('l, F j, Y'); ?>
                             </span>

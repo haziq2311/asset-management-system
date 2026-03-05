@@ -102,7 +102,7 @@ check_auth(['operation_manager', 'it_operation']);
                     <div class="text-center mb-4">
                         <i class="fas fa-chart-line" style="font-size: 48px;"></i>
                         <h4 class="mt-2">Operations Dashboard</h4>
-                        <p class="mb-0">Welcome, <?php echo htmlspecialchars(get_user_name()); ?></p>
+                        <p class="mb-0">Welcome, <?php echo htmlspecialchars($_SESSION['full_name'] ?? 'User'); ?></p>
                         <small class="text-light">Manager</small>
                     </div>
                     
@@ -149,7 +149,7 @@ check_auth(['operation_manager', 'it_operation']);
                         </li>
                         <li class="nav-item mt-4">
                             <a class="nav-link text-warning" href="#">
-                                <i class="fas fa-bell"></i> Alerts
+                                <i class="fas fa-bell"></i> Notifications
                                 <span class="badge bg-danger rounded-pill">5</span>
                             </a>
                         </li>
@@ -170,7 +170,12 @@ check_auth(['operation_manager', 'it_operation']);
                             <h1>Operations Management Dashboard</h1>
                             <p>Monitor performance, optimize processes, and manage operations</p>
                         </div>
-                        <div class="btn-group">
+                        <div class="d-flex gap-2">
+                            <?php if ($_SESSION['role'] === 'it_operation'): ?>
+                            <a href="../information_system/dashboard.php" class="btn btn-dark">
+                                <i class="bi bi-house-fill me-1"></i> IT Dashboard
+                            </a>
+                            <?php endif; ?>
                             <button class="btn btn-primary">
                                 <i class="fas fa-download"></i> Export Report
                             </button>

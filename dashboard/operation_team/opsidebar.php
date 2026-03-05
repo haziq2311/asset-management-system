@@ -72,7 +72,7 @@ if ($pq) {
             </li>
             <li class="nav-item mt-4">
                 <a class="nav-link text-warning" href="#">
-                    <i class="fas fa-bell"></i> Alerts
+                    <i class="fas fa-bell"></i> Notifications
                     <?php if ($pending_count > 0): ?>
                         <span class="badge bg-danger rounded-pill"><?php echo $pending_count; ?></span>
                     <?php endif; ?>
