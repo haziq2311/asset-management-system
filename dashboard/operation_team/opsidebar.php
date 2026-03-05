@@ -44,7 +44,7 @@ if ($pq) {
         <ul class="nav flex-column">
             <li class="nav-item">
                 <a class="nav-link <?php echo $current_page === 'dashboard.php' ? 'active' : ''; ?>" href="dashboard.php">
-                    <i class="fas fa-tachometer-alt"></i> Overview
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
                 </a>
             </li>
             <li class="nav-item">
@@ -66,6 +66,7 @@ if ($pq) {
                 </a>
             </li>
             <li class="nav-item">
+<<<<<<< Updated upstream
                 <a class="nav-link" href="#">
                     <i class="fas fa-tasks"></i> Task Management
                 </a>
@@ -79,6 +80,8 @@ if ($pq) {
                 </a>
             </li>
             <li class="nav-item">
+=======
+>>>>>>> Stashed changes
                 <a class="nav-link text-danger" href="../../auth/logout.php">
                     <i class="fas fa-sign-out-alt"></i> Logout
                 </a>
